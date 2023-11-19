@@ -1954,6 +1954,123 @@ For example:
 * The `-l` option provides comprehensive details of each transaction
 * The `-t` option allows you to specify a particular transaction
 
+### Creating and publishing a package
+
+We'll walk through creating an IPS package for the [helix editor](https://helix-editor.com/) (`hx`)
+on illumos (specifically for OpenIndiana) involves several steps. Since the helix editor now
+exists in the OI Hipster repository, you may want to try this procedure with a different package.
+
+1. **Install pkgbuild**
+   - If not already installed: `pfexec pkg install pkgbuild`
+
+   At this point, it is worth having a quick look at `man pkgbuild` for future reference.
+
+1. **TODO: Refer to an existing component**
+
+   It may be helpful to refer to an existing component. Since helix is an editor, looking at
+   another rust package would likely be ideal, but we'll compare to the [nano](https://github.com/OpenIndiana/oi-userland/tree/oi/hipster/components/editor/nano) component in the `oi-userland` repo.
+
+1. **Install the package's build dependencies**
+
+  # TODO should we somehow use the .pkg file?
+
+   This will depend on the package you're building. For `hx`, we need `rustc` and the associated
+   build system (`cargo`), which on OI is included in the `rustc` package:
+   - `pfexec pkg install rustc`
+
+   We want ready access to these tools, so we'll add them to our `PATH`:
+   - `export PATH=$HOME/.cargo/bin:$PATH`
+
+   If you intend to use these tools regularly, consider adding this line
+   to your `$HOME/.profile`, for instance.
+
+1. **Fetch the Source Code**:
+
+   Although we could go the binary package route of using `cargo install` (which still uses sources),
+   it is fairly common to build from source on illumos, so we'll follow that approach here. This is
+   also useful in the case where illumos or OI-specific patches need to be applied.
+
+   - Clone the `helix` repository from GitHub or download the source tarball.
+
+1. **Write a Makefile**:
+   - If `helix` doesn't already have a Makefile suitable for illumos, you'll need to write one. This Makefile should include instructions for building and installing `helix`.
+
+1. **Write the Manifest**:
+   - The manifest is a crucial part of IPS packaging. It describes the package's metadata, dependencies, and the files it installs.
+   - Use the `pkgsend` utility to generate a prototype manifest based on the installed files.
+
+1. **Build the Package**:
+   - Use the `pkgbuild` tool to build the IPS package.
+
+1. **Test the Package**:
+   - Before distributing the package, install it on a test system or a virtual machine to ensure it works correctly.
+
+1. **Publish the Package**:
+   - If everything looks good, you can publish the package to a repository.
+
+Let's dive into each step in more detail:
+
+#### 1. Preparation:
+
+- Install the necessary tools:
+  ```bash
+  sudo pkg install developer/build/pkgbuild
+  ```
+
+- Set up a build directory, e.g., `~/build/helix`.
+
+#### 2. Fetch the Source Code:
+
+- Clone the `ripgrep` repository:
+  ```bash
+  git clone https://github.com/helix-editor/helix.git
+  cd helix
+  ```
+
+#### 3. Write a Makefile:
+
+- If necessary, write a Makefile to build and install `helix`. Ensure it respects the `PREFIX` variable for installation paths.
+
+#### 4. Write the Manifest:
+
+- Install `helix` to a temporary directory:
+  ```bash
+  make install PREFIX=/tmp/helix-install
+  ```
+
+- Generate a prototype manifest:
+  ```bash
+  pkgsend generate /tmp/helix-install > helix.p5m
+  ```
+
+- Edit the `helix.p5m` file to add metadata, dependencies, and other necessary information.
+
+#### 5. Build the Package:
+
+- Use `pkgbuild` to build the package:
+  ```bash
+  pkgbuild -o root -g bin -ba -mf helix.p5m
+  ```
+
+#### 6. Test the Package:
+
+- Install the package on a test system:
+  ```bash
+  sudo pkg install -g /path/to/helix.p5p helix
+  ```
+
+- Test the `helix` command to ensure it works as expected.
+
+#### 7. Publish the Package:
+
+- If you have a repository set up, you can publish the package:
+  ```bash
+  pkgsend publish -s /path/to/repo -d /tmp/helix-install helix.p5m
+  ```
+
+Remember, these steps are a general guide. Depending on the specifics of the package
+and its build process, you might need to adjust some steps.
+
 
 ### IPS package archives (.p5p)
 
